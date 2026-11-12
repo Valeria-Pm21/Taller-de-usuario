@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Usuario;
 use App\Models\Empresa;
-use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class UsuarioController extends Controller
@@ -15,7 +14,7 @@ class UsuarioController extends Controller
      */
     public function index()
     {
-        $usuarios = Usuario::all();
+        $usuarios = User::with('empresa')->get();
 
         return view('usuario.index', compact('usuarios'));
     }
@@ -36,20 +35,20 @@ class UsuarioController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'username' => 'required|max:50|unique:usuario,username',
-            'password' => 'required|min:8',
-            'rol' => 'required|in:admin,vendedor,supervisor',
-            'activo' => 'required|boolean',
+            'username'   => 'required|max:50|unique:usuario,username',
+            'password'   => 'required|min:8',
+            'rol'        => 'required|in:admin,vendedor,supervisor',
+            'activo'     => 'required|boolean',
             'id_empresa' => 'nullable|exists:empresa,id_empresa',
         ]);
 
-        Usuario::create([
-            'username' => $request->username,
-            'password' => Hash::make($request->password),
-            'rol' => $request->rol,
-            'activo' => $request->activo,
+        User::create([
+            'username'       => $request->username,
+            'password'       => $request->password, // el cast 'hashed' la encripta
+            'rol'            => $request->rol,
+            'activo'         => $request->activo,
             'fecha_creacion' => now(),
-            'id_empresa' => $request->id_empresa,
+            'id_empresa'     => $request->id_empresa,
         ]);
 
         return redirect()->route('usuarios.index')
@@ -61,7 +60,7 @@ class UsuarioController extends Controller
      */
     public function show(string $id)
     {
-        $usuario = Usuario::findOrFail($id);
+        $usuario = User::findOrFail($id);
 
         return view('usuario.show', compact('usuario'));
     }
@@ -69,7 +68,7 @@ class UsuarioController extends Controller
     /**
      * Mostrar el formulario para editar un usuario.
      */
-    public function edit(Usuario $usuario)
+    public function edit(User $usuario)
     {
         $empresas = Empresa::all(['id_empresa', 'nombre']);
 
@@ -79,27 +78,27 @@ class UsuarioController extends Controller
     /**
      * Actualizar un usuario existente.
      */
-    public function update(Request $request, Usuario $usuario)
+    public function update(Request $request, User $usuario)
     {
         $request->validate([
-            'username' => 'required|max:50|unique:usuario,username,'
-                . $usuario->id_usuario . ',id_usuario',
-            'password' => 'nullable|min:8',
-            'rol' => 'required|in:admin,vendedor,supervisor',
-            'activo' => 'required|boolean',
+            'username'   => 'required|max:50|unique:usuario,username,'
+                            . $usuario->id_usuario . ',id_usuario',
+            'password'   => 'nullable|min:8',
+            'rol'        => 'required|in:admin,vendedor,supervisor',
+            'activo'     => 'required|boolean',
             'id_empresa' => 'nullable|exists:empresa,id_empresa',
         ]);
 
         $datos = [
-            'username' => $request->username,
-            'rol' => $request->rol,
-            'activo' => $request->activo,
+            'username'   => $request->username,
+            'rol'        => $request->rol,
+            'activo'     => $request->activo,
             'id_empresa' => $request->id_empresa,
         ];
 
         // Cambiar la contraseña únicamente si se ingresó una nueva.
         if ($request->filled('password')) {
-            $datos['password'] = Hash::make($request->password);
+            $datos['password'] = $request->password; // el cast 'hashed' la encripta
         }
 
         $usuario->update($datos);
@@ -111,8 +110,14 @@ class UsuarioController extends Controller
     /**
      * Eliminar un usuario.
      */
-    public function destroy(Usuario $usuario)
+    public function destroy(User $usuario)
     {
+        // No permitir que el usuario logueado se elimine a sí mismo.
+        if ($usuario->id_usuario === auth()->id()) {
+            return redirect()->route('usuarios.index')
+                ->with('error', 'No puedes eliminar tu propio usuario.');
+        }
+
         // Verificar si el usuario tiene facturas asociadas.
         $tieneFacturas = DB::table('factura')
             ->where('id_usuario', $usuario->id_usuario)
@@ -120,10 +125,7 @@ class UsuarioController extends Controller
 
         if ($tieneFacturas) {
             return redirect()->route('usuarios.index')
-                ->with(
-                    'error',
-                    'No se puede eliminar el usuario porque tiene facturas asociadas.'
-                );
+                ->with('error', 'No se puede eliminar el usuario porque tiene facturas asociadas.');
         }
 
         $usuario->delete();

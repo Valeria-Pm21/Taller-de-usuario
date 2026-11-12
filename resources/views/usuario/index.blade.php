@@ -1,92 +1,139 @@
+<x-app-layout>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Listado de Usuarios</title>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            Usuarios registrados
+        </h2>
+    </x-slot>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
-</head>
-<body>
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
 
-    <div class="container my-5">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
 
-        <h1 class="mb-4">Usuarios Registrados</h1>
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold">
+                            Listado de usuarios
+                        </h3>
 
-        <a href="{{ route('usuarios.create') }}" class="btn btn-primary mb-3">
-            Crear Nuevo Usuario
-        </a>
+                        <a href="{{ route('usuarios.create') }}"
+                           class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md">
+                            + Crear nuevo usuario
+                        </a>
+                    </div>
 
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    {{-- Mensajes --}}
+                    @if (session('success'))
+                        <div class="mb-4 rounded-md bg-green-100 p-4 text-green-800">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="mb-4 rounded-md bg-red-100 p-4 text-red-800">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    {{-- Tabla de usuarios --}}
+                    <div class="overflow-x-auto">
+
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+
+                            <thead class="bg-gray-100 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">ID</th>
+                                    <th class="px-4 py-3 text-left">Usuario</th>
+                                    <th class="px-4 py-3 text-left">Rol</th>
+                                    <th class="px-4 py-3 text-left">Estado</th>
+                                    <th class="px-4 py-3 text-left">Empresa</th>
+                                    <th class="px-4 py-3 text-left">Fecha de creación</th>
+                                    <th class="px-4 py-3 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                                @forelse ($usuarios as $usuario)
+
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+
+                                        <td class="px-4 py-3">{{ $usuario->id_usuario }}</td>
+
+                                        <td class="px-4 py-3">{{ $usuario->username }}</td>
+
+                                        <td class="px-4 py-3 capitalize">{{ $usuario->rol }}</td>
+
+                                        <td class="px-4 py-3">
+                                            @if ($usuario->activo)
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                                    Activo
+                                                </span>
+                                            @else
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 text-gray-700">
+                                                    Inactivo
+                                                </span>
+                                            @endif
+                                        </td>
+
+                                        <td class="px-4 py-3">
+                                            {{ $usuario->empresa->nombre ?? 'Sin empresa' }}
+                                        </td>
+
+                                        <td class="px-4 py-3">{{ $usuario->fecha_creacion }}</td>
+
+                                        <td class="px-4 py-3">
+
+                                            <div class="flex justify-center gap-2">
+
+                                                <a href="{{ route('usuarios.edit', $usuario->id_usuario) }}"
+                                                   class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm rounded-md">
+                                                    Editar
+                                                </a>
+
+                                                <form action="{{ route('usuarios.destroy', $usuario->id_usuario) }}"
+                                                      method="POST">
+
+                                                    @csrf
+                                                    @method('DELETE')
+
+                                                    <button type="submit"
+                                                            class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md"
+                                                            onclick="return confirm('¿Está seguro de que desea eliminar al usuario {{ $usuario->username }}?')">
+                                                        Eliminar
+                                                    </button>
+
+                                                </form>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+
+                                @empty
+
+                                    <tr>
+                                        <td colspan="7" class="px-4 py-6 text-center text-gray-500">
+                                            No hay usuarios registrados.
+                                        </td>
+                                    </tr>
+
+                                @endforelse
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
             </div>
-        @endif
 
-        @if (session('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre de usuario</th>
-                        <th>Rol</th>
-                        <th>Estado</th>
-                        <th>Empresa</th>
-                        <th>Fecha de creación</th>
-                        <th class="text-center">Acciones</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    @foreach ($usuarios as $usuario)
-                    <tr>
-                        <td>{{ $usuario->id_usuario }}</td>
-                        <td>{{ $usuario->username }}</td>
-                        <td>{{ $usuario->rol }}</td>
-                        <td>
-                            @if ($usuario->activo)
-                                <span class="badge bg-success">Activo</span>
-                            @else
-                                <span class="badge bg-secondary">Inactivo</span>
-                            @endif
-                        </td>
-                        <td>{{ $usuario->id_empresa ?? 'Sin empresa' }}</td>
-                        <td>{{ $usuario->fecha_creacion }}</td>
-                        <td class="text-center">
-
-                            <a href="{{ route('usuarios.edit', $usuario->id_usuario) }}" class="btn btn-sm btn-warning me-2">
-                                Editar
-                            </a>
-
-                            <form action="{{ route('usuarios.destroy', $usuario->id_usuario) }}" method="POST" style="display:inline;">
-                                @csrf
-                                @method('DELETE')
-
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Está seguro de que desea ELIMINAR al usuario {{ $usuario->username }}?')">
-                                    Eliminar
-                                </button>
-                            </form>
-
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
         </div>
-
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tK2Q1XQ5j4m7dY8X6h9k3m2n1p0q7r6s5t4u3v2w1x0y9z8a7b6c5d4e3" crossorigin="anonymous"></script>
-
-</body>
-</html>
+</x-app-layout>
